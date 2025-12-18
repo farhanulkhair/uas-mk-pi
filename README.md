@@ -107,6 +107,11 @@ Project UAS/
 - Hasil pencarian diurutkan berdasarkan skor relevansi tertinggi
 
 ## 👨‍💻 Developer
+- M. Agradika Ridhal Eljatin (2208107010020)
+- Hidayat Nur Hakim (2208107010063)
+- Farhanul Khair (2208107010076)
+
+---
 
 Dibuat untuk Project UAS Mata Kuliah Penulusuran Informasi
 
