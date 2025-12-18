@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import os
 import base64
+import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
@@ -520,7 +521,7 @@ st.markdown(f"""
         z-index: 1;
         padding-top: 2rem;
         padding-bottom: 2rem;
-        max-width: 1200px;
+        max-width: 1600px;
     }}
     
     /* Column styling */
@@ -710,93 +711,174 @@ with col2:
     query = st.text_input(
         "Pencarian", placeholder="Cari artikel tentang hewan peliharaan...", label_visibility="collapsed")
 
-    col_algo1, col_algo2 = st.columns(2)
-    with col_algo1:
-        algorithm = st.radio(
-            "Pilih Algoritma Pencarian:",
-            options=["Cosine Similarity", "Jaccard Similarity"],
-            index=0,
-            horizontal=True
-        )
-
-    search_button = st.button("Cari Artikel", use_container_width=True)
+    search_button = st.button(
+        "🔍 Cari & Bandingkan Algoritma", use_container_width=True)
 
 # Perform Search
 if search_button and query:
     st.session_state.search_performed = True
     st.session_state.page = 1
     st.session_state.query = query
-    st.session_state.algorithm = algorithm
 
 # Display Results
 if st.session_state.search_performed and 'query' in st.session_state:
     query = st.session_state.query
-    algorithm = st.session_state.algorithm
 
-    # Get results
-    if algorithm == "Cosine Similarity":
-        all_results = get_cosine_similarity(query)
-        algo_name = "Cosine"
-    else:
-        all_results = get_jaccard_similarity(query)
-        algo_name = "Jaccard"
+    # Get results with timing for both algorithms
+    # Jaccard Similarity
+    start_jaccard = time.time()
+    jaccard_results = get_jaccard_similarity(query)
+    jaccard_time = (time.time() - start_jaccard) * 1000  # in ms
 
-    total_results = len(all_results)
+    # Cosine Similarity
+    start_cosine = time.time()
+    cosine_results = get_cosine_similarity(query)
+    cosine_time = (time.time() - start_cosine) * 1000  # in ms
 
-    # Stats
+    total_jaccard = len(jaccard_results)
+    total_cosine = len(cosine_results)
+
+    # Stats with latency comparison
     st.markdown(f"""
     <div class="stats-box">
-        <h3>Ditemukan {total_results} hasil untuk "{query}"</h3>
-        <p>Menggunakan algoritma {algorithm}</p>
+        <h3>🔍 Hasil Pencarian untuk "{query}"</h3>
+        <p style="margin-top: 1rem;">Menampilkan perbandingan hasil antara Jaccard Similarity dan Cosine Similarity</p>
     </div>
     """, unsafe_allow_html=True)
 
-    if total_results > 0:
+    # Latency Comparison Box - Enhanced visibility
+    st.markdown(f"""
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 320px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)); backdrop-filter: blur(30px); border-radius: 24px; padding: 2rem; border: 2px solid rgba(255, 255, 255, 0.35); text-align: center; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">🎯</div>
+            <h4 style="color: #FFFFFF; font-size: 1.3rem; margin-bottom: 1rem; font-weight: 700; text-shadow: 0 3px 15px rgba(0,0,0,0.5);">Jaccard Similarity</h4>
+            <div style="display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap;">
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 1.2rem 1.8rem; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);">
+                    <p style="color: #FFFFFF; font-size: 1rem; margin-bottom: 0.6rem; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">📊 Hasil</p>
+                    <p style="color: #FFFFFF; font-size: 2.5rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 140, 66, 0.6);">{total_jaccard}</p>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 1.2rem 1.8rem; border-radius: 16px; border: 2px solid rgba(74, 222, 128, 0.4); backdrop-filter: blur(10px);">
+                    <p style="color: #FFFFFF; font-size: 1rem; margin-bottom: 0.6rem; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">⏱️ Latensi</p>
+                    <p style="color: #4ADE80; font-size: 2.5rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7), 0 0 30px rgba(74, 222, 128, 0.6);">{jaccard_time:.2f} ms</p>
+                </div>
+            </div>
+        </div>
+        <div style="flex: 1; min-width: 320px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)); backdrop-filter: blur(30px); border-radius: 24px; padding: 2rem; border: 2px solid rgba(255, 255, 255, 0.35); text-align: center; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">⚡</div>
+            <h4 style="color: #FFFFFF; font-size: 1.3rem; margin-bottom: 1rem; font-weight: 700; text-shadow: 0 3px 15px rgba(0,0,0,0.5);">Cosine Similarity</h4>
+            <div style="display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap;">
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 1.2rem 1.8rem; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px);">
+                    <p style="color: #FFFFFF; font-size: 1rem; margin-bottom: 0.6rem; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">📊 Hasil</p>
+                    <p style="color: #FFFFFF; font-size: 2.5rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 140, 66, 0.6);">{total_cosine}</p>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); padding: 1.2rem 1.8rem; border-radius: 16px; border: 2px solid rgba(74, 222, 128, 0.4); backdrop-filter: blur(10px);">
+                    <p style="color: #FFFFFF; font-size: 1rem; margin-bottom: 0.6rem; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">⏱️ Latensi</p>
+                    <p style="color: #4ADE80; font-size: 2.5rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7), 0 0 30px rgba(74, 222, 128, 0.6);">{cosine_time:.2f} ms</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Speed comparison indicator
+    faster = "Jaccard" if jaccard_time < cosine_time else "Cosine"
+    diff_time = abs(jaccard_time - cosine_time)
+    st.markdown(f"""
+    <div style="text-align: center; margin-bottom: 2rem; padding: 1.2rem 2rem; background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.3)); border-radius: 16px; border: 2px solid rgba(74, 222, 128, 0.5); backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
+        <p style="color: #4ADE80; font-weight: 700; font-size: 1.15rem; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(74, 222, 128, 0.4);">🚀 {faster} Similarity lebih cepat {diff_time:.2f} ms</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if total_jaccard > 0 or total_cosine > 0:
         # Pagination
         per_page = 5
-        total_pages = (total_results + per_page - 1) // per_page
+        max_results = max(total_jaccard, total_cosine)
+        total_pages = (max_results + per_page - 1) // per_page
         page = st.session_state.page
 
         start = (page - 1) * per_page
-        end = min(start + per_page, total_results)
-        results = all_results[start:end]
+        end = min(start + per_page, max_results)
 
-        # Display results
-        for result in results:
-            col_img, col_content = st.columns([1, 2])
+        # Column headers
+        st.markdown("""
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.12); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px);">
+                <h3 style="color: #FFFFFF; font-size: 1.2rem; font-weight: 700; margin: 0;">🎯 Jaccard Similarity</h3>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.12); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px);">
+                <h3 style="color: #FFFFFF; font-size: 1.2rem; font-weight: 700; margin: 0;">⚡ Cosine Similarity</h3>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            with col_img:
-                try:
-                    st.image(result["image"],
-                             use_container_width=True, caption="")
-                except:
-                    st.image(
-                        "https://via.placeholder.com/400x300?text=No+Image", use_container_width=True)
+        # Display results side by side
+        for i in range(start, end):
+            col_jaccard, col_cosine = st.columns(2)
 
-            with col_content:
-                st.markdown(f"""
-                <div style="padding: 0.5rem;">
-                    <h3 style="color: #FFFFFF; font-size: 1.35rem; font-weight: 600; margin-bottom: 0.6rem; letter-spacing: -0.3px; text-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                        <a href="{result['link']}" target="_blank" style="color: inherit; text-decoration: none; transition: color 0.3s ease;">{result['title']}</a>
-                    </h3>
-                    <p style="color: rgba(255, 255, 255, 0.8); line-height: 1.75; font-size: 0.95rem; margin-bottom: 1rem;">{result['content']}</p>
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                        <span style="background: rgba(255, 255, 255, 0.2); color: #FFFFFF; padding: 0.5rem 1.1rem; border-radius: 12px; font-size: 0.9rem; font-weight: 600; border: 1px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(15px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-shadow: 0 1px 3px rgba(0,0,0,0.2);">
-                            📅 {result['date']}
-                        </span>
+            # Jaccard Result (Left)
+            with col_jaccard:
+                if i < total_jaccard:
+                    result = jaccard_results[i]
+                    score_percent = result['score'] * 100
+                    st.markdown(f"""
+                    <div class="result-card">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="flex-shrink: 0; width: 120px; height: 90px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.1);">
+                                <img src="{result['image']}" alt="" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <h4 style="color: #FFFFFF; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.4rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <a href="{result['link']}" target="_blank" style="color: inherit; text-decoration: none;">{result['title'][:50]}{'...' if len(result['title']) > 50 else ''}</a>
+                                </h4>
+                                <p style="color: rgba(255, 255, 255, 0.75); font-size: 0.8rem; line-height: 1.5; margin-bottom: 0.6rem;">{result['content'][:100]}...</p>
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+                                    <span style="background: rgba(255, 255, 255, 0.2); color: #FFFFFF; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; font-weight: 500;">📅 {result['date']}</span>
+                                    <span style="background: linear-gradient(135deg, #FF6B35, #FF8C42); color: #FFFFFF; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;">🎯 {score_percent:.2f}%</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
-                score_percent = result['score'] * 100
-                st.markdown(f"""
-                <div style="margin-top: 1rem;">
-                    <span style="background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%); color: #FFFFFF; padding: 0.6rem 1.25rem; border-radius: 14px; font-weight: 700; font-size: 0.9rem; display: inline-block; font-family: 'JetBrains Mono', monospace; box-shadow: 0 4px 20px rgba(255, 107, 53, 0.35);">
-                        ⚡ {algo_name}: {score_percent:.2f}%
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 2rem; text-align: center; border: 1px dashed rgba(255, 255, 255, 0.15); min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                        <p style="color: rgba(255, 255, 255, 0.4); font-size: 0.9rem;">Tidak ada hasil lagi</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            st.markdown("---")
+            # Cosine Result (Right)
+            with col_cosine:
+                if i < total_cosine:
+                    result = cosine_results[i]
+                    score_percent = result['score'] * 100
+                    st.markdown(f"""
+                    <div class="result-card">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="flex-shrink: 0; width: 120px; height: 90px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.1);">
+                                <img src="{result['image']}" alt="" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <h4 style="color: #FFFFFF; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.4rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <a href="{result['link']}" target="_blank" style="color: inherit; text-decoration: none;">{result['title'][:50]}{'...' if len(result['title']) > 50 else ''}</a>
+                                </h4>
+                                <p style="color: rgba(255, 255, 255, 0.75); font-size: 0.8rem; line-height: 1.5; margin-bottom: 0.6rem;">{result['content'][:100]}...</p>
+                                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+                                    <span style="background: rgba(255, 255, 255, 0.2); color: #FFFFFF; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; font-weight: 500;">📅 {result['date']}</span>
+                                    <span style="background: linear-gradient(135deg, #FF6B35, #FF8C42); color: #FFFFFF; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;">⚡ {score_percent:.2f}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 2rem; text-align: center; border: 1px dashed rgba(255, 255, 255, 0.15); min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                        <p style="color: rgba(255, 255, 255, 0.4); font-size: 0.9rem;">Tidak ada hasil lagi</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height: 1.5rem;'></div>",
+                    unsafe_allow_html=True)
 
         # Pagination controls
         col_prev, col_info, col_next = st.columns([1, 2, 1])
@@ -821,7 +903,7 @@ if st.session_state.search_performed and 'query' in st.session_state:
         <div style="text-align: center; padding: 3rem; background: rgba(255, 255, 255, 0.12); border-radius: 24px; backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.18); position: relative; z-index: 1; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
             <h2 style="color: #FFFFFF; font-weight: 600; font-size: 1.4rem; margin-bottom: 0.75rem; text-shadow: 0 2px 8px rgba(0,0,0,0.2);">Tidak ada hasil ditemukan</h2>
-            <p style="color: rgba(255, 255, 255, 0.75); font-size: 1rem;">Coba gunakan kata kunci yang berbeda atau ubah algoritma pencarian</p>
+            <p style="color: rgba(255, 255, 255, 0.75); font-size: 1rem;">Coba gunakan kata kunci yang berbeda</p>
         </div>
         """, unsafe_allow_html=True)
 
